@@ -3,7 +3,7 @@
 System.register(['./datasource', './query_ctrl'], function (_export, _context) {
   "use strict";
 
-  var GenericDatasource, GenericDatasourceQueryCtrl, GenericConfigCtrl, GenericQueryOptionsCtrl, GenericAnnotationsQueryCtrl;
+  var IronDbCheckDatasource, IronDbCheckQueryCtrl, IronDbCheckConfigCtrl;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -13,38 +13,22 @@ System.register(['./datasource', './query_ctrl'], function (_export, _context) {
 
   return {
     setters: [function (_datasource) {
-      GenericDatasource = _datasource.GenericDatasource;
+      IronDbCheckDatasource = _datasource.IronDbCheckDatasource;
     }, function (_query_ctrl) {
-      GenericDatasourceQueryCtrl = _query_ctrl.GenericDatasourceQueryCtrl;
+      IronDbCheckQueryCtrl = _query_ctrl.IronDbCheckQueryCtrl;
     }],
     execute: function () {
-      _export('ConfigCtrl', GenericConfigCtrl = function GenericConfigCtrl() {
-        _classCallCheck(this, GenericConfigCtrl);
+      _export('ConfigCtrl', IronDbCheckConfigCtrl = function IronDbCheckConfigCtrl() {
+        _classCallCheck(this, IronDbCheckConfigCtrl);
       });
 
-      GenericConfigCtrl.templateUrl = 'partials/config.html';
+      IronDbCheckConfigCtrl.templateUrl = 'partials/config.html';
 
-      _export('QueryOptionsCtrl', GenericQueryOptionsCtrl = function GenericQueryOptionsCtrl() {
-        _classCallCheck(this, GenericQueryOptionsCtrl);
-      });
+      _export('Datasource', IronDbCheckDatasource);
 
-      GenericQueryOptionsCtrl.templateUrl = 'partials/query.options.html';
+      _export('QueryCtrl', IronDbCheckQueryCtrl);
 
-      _export('AnnotationsQueryCtrl', GenericAnnotationsQueryCtrl = function GenericAnnotationsQueryCtrl() {
-        _classCallCheck(this, GenericAnnotationsQueryCtrl);
-      });
-
-      GenericAnnotationsQueryCtrl.templateUrl = 'partials/annotations.editor.html';
-
-      _export('Datasource', GenericDatasource);
-
-      _export('QueryCtrl', GenericDatasourceQueryCtrl);
-
-      _export('ConfigCtrl', GenericConfigCtrl);
-
-      _export('QueryOptionsCtrl', GenericQueryOptionsCtrl);
-
-      _export('AnnotationsQueryCtrl', GenericAnnotationsQueryCtrl);
+      _export('ConfigCtrl', IronDbCheckConfigCtrl);
     }
   };
 });

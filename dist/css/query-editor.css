@@ -1,3 +1,12 @@
-.generic-datasource-query-row .query-keyword {
+.irondb-check-datasource-query-row .query-keyword {
   width: 75px;
+}
+
+.irondb-check-datasource-query-row gf-form-dropdown {
+  margin-right: 0.25rem;
+}
+
+.irondb-check-datasource-query-row gf-form-dropdown input,
+.irondb-check-datasource-query-row gf-form-dropdown a {
+  border-radius: 0.25rem;
 }

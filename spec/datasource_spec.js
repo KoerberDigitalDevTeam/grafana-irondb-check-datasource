@@ -1,7 +1,7 @@
 import {Datasource} from "../module";
 import Q from "q";
 
-describe('GenericDatasource', function() {
+describe.skip('GenericDatasource', function() {
     var ctx = {};
 
     beforeEach(function() {
@@ -42,11 +42,14 @@ describe('GenericDatasource', function() {
             expect(series.target).to.equal('X');
             expect(series.datapoints).to.have.length(3);
             done();
+        }, function(error) {
+            done(error);
         });
     });
 
     it ('should return the metric results when a target is null', function(done) {
         ctx.backendSrv.datasourceRequest = function(request) {
+          console.log("FOO, REQUEST");
             return ctx.$q.when({
                 _request: request,
                 data: [
@@ -70,6 +73,8 @@ describe('GenericDatasource', function() {
             expect(result[2].text).to.equal('metric_2');
             expect(result[2].value).to.equal('metric_2');
             done();
+        }, function(error) {
+            done(error);
         });
     });
 

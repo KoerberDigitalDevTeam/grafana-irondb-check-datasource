@@ -3,7 +3,7 @@
 System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_export, _context) {
   "use strict";
 
-  var QueryCtrl, _createClass, GenericDatasourceQueryCtrl;
+  var QueryCtrl, _createClass, IronDbCheckQueryCtrl;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -58,43 +58,69 @@ System.register(['app/plugins/sdk', './css/query-editor.css!'], function (_expor
         };
       }();
 
-      _export('GenericDatasourceQueryCtrl', GenericDatasourceQueryCtrl = function (_QueryCtrl) {
-        _inherits(GenericDatasourceQueryCtrl, _QueryCtrl);
+      _export('IronDbCheckQueryCtrl', IronDbCheckQueryCtrl = function (_QueryCtrl) {
+        _inherits(IronDbCheckQueryCtrl, _QueryCtrl);
 
-        function GenericDatasourceQueryCtrl($scope, $injector) {
-          _classCallCheck(this, GenericDatasourceQueryCtrl);
+        function IronDbCheckQueryCtrl($scope, $injector) {
+          _classCallCheck(this, IronDbCheckQueryCtrl);
 
-          var _this = _possibleConstructorReturn(this, (GenericDatasourceQueryCtrl.__proto__ || Object.getPrototypeOf(GenericDatasourceQueryCtrl)).call(this, $scope, $injector));
+          var _this = _possibleConstructorReturn(this, (IronDbCheckQueryCtrl.__proto__ || Object.getPrototypeOf(IronDbCheckQueryCtrl)).call(this, $scope, $injector));
 
           _this.scope = $scope;
+          _this.target.kind = _this.target.kind || 'numeric';
           _this.target.target = _this.target.target || 'select metric';
-          _this.target.type = _this.target.type || 'timeserie';
+          _this.target.type = _this.target.type || 'average';
           return _this;
         }
 
-        _createClass(GenericDatasourceQueryCtrl, [{
+        _createClass(IronDbCheckQueryCtrl, [{
           key: 'getOptions',
           value: function getOptions(query) {
-            return this.datasource.metricFindQuery(query || '');
+            return this.datasource.metricFindQuery(query, this.target.kind).then(function (metrics) {
+              metrics = metrics.sort();
+              var result = [];
+              var _iteratorNormalCompletion = true;
+              var _didIteratorError = false;
+              var _iteratorError = undefined;
+
+              try {
+                for (var _iterator = metrics[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                  var text = _step.value;
+                  result.push({ text: text, value: text });
+                }
+              } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+              } finally {
+                try {
+                  if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                  }
+                } finally {
+                  if (_didIteratorError) {
+                    throw _iteratorError;
+                  }
+                }
+              }
+
+              return result;
+            });
           }
         }, {
-          key: 'toggleEditorMode',
-          value: function toggleEditorMode() {
-            this.target.rawQuery = !this.target.rawQuery;
-          }
-        }, {
-          key: 'onChangeInternal',
-          value: function onChangeInternal() {
-            this.panelCtrl.refresh(); // Asks the panel to refresh data.
+          key: 'onChangeKind',
+          value: function onChangeKind() {
+            if (this.target.kind == 'text') this.target.type = 'text';else this.target.type = 'average';
+            this.target.target = 'select metric';
+            this.refresh();
           }
         }]);
 
-        return GenericDatasourceQueryCtrl;
+        return IronDbCheckQueryCtrl;
       }(QueryCtrl));
 
-      _export('GenericDatasourceQueryCtrl', GenericDatasourceQueryCtrl);
+      _export('IronDbCheckQueryCtrl', IronDbCheckQueryCtrl);
 
-      GenericDatasourceQueryCtrl.templateUrl = 'partials/query.editor.html';
+      IronDbCheckQueryCtrl.templateUrl = 'partials/query.editor.html';
     }
   };
 });

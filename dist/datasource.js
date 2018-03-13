@@ -3,7 +3,7 @@
 System.register(['lodash'], function (_export, _context) {
   "use strict";
 
-  var _, _createClass, GenericDatasource;
+  var _, _createClass, IronDbCheckDatasource;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -34,9 +34,9 @@ System.register(['lodash'], function (_export, _context) {
         };
       }();
 
-      _export('GenericDatasource', GenericDatasource = function () {
-        function GenericDatasource(instanceSettings, $q, backendSrv, templateSrv) {
-          _classCallCheck(this, GenericDatasource);
+      _export('IronDbCheckDatasource', IronDbCheckDatasource = function () {
+        function IronDbCheckDatasource(instanceSettings, $q, backendSrv, templateSrv) {
+          _classCallCheck(this, IronDbCheckDatasource);
 
           this.type = instanceSettings.type;
           this.url = instanceSettings.url;
@@ -45,89 +45,175 @@ System.register(['lodash'], function (_export, _context) {
           this.backendSrv = backendSrv;
           this.templateSrv = templateSrv;
           this.withCredentials = instanceSettings.withCredentials;
+          this.checkUuid = instanceSettings.jsonData && instanceSettings.jsonData.checkUuid || '00000000-0000-0000-0000-000000000000';
+          this.minRollup = parseInt(instanceSettings.jsonData.minRollup) || 30;
           this.headers = { 'Content-Type': 'application/json' };
           if (typeof instanceSettings.basicAuth === 'string' && instanceSettings.basicAuth.length > 0) {
             this.headers['Authorization'] = instanceSettings.basicAuth;
           }
         }
 
-        _createClass(GenericDatasource, [{
-          key: 'query',
-          value: function query(options) {
-            var query = this.buildQueryParameters(options);
-            query.targets = query.targets.filter(function (t) {
-              return !t.hide;
-            });
+        /* Test our datasource, we must have at least one metric for it to be successful */
 
-            if (query.targets.length <= 0) {
-              return this.q.when({ data: [] });
-            }
 
-            return this.doRequest({
-              url: this.url + '/query',
-              data: query,
-              method: 'POST'
-            });
-          }
-        }, {
+        _createClass(IronDbCheckDatasource, [{
           key: 'testDatasource',
           value: function testDatasource() {
-            return this.doRequest({
-              url: this.url + '/',
-              method: 'GET'
-            }).then(function (response) {
-              if (response.status === 200) {
-                return { status: "success", message: "Data source is working", title: "Success" };
-              }
-            });
-          }
-        }, {
-          key: 'annotationQuery',
-          value: function annotationQuery(options) {
-            var query = this.templateSrv.replace(options.annotation.query, {}, 'glob');
-            var annotationQuery = {
-              range: options.range,
-              annotation: {
-                name: options.annotation.name,
-                datasource: options.annotation.datasource,
-                enable: options.annotation.enable,
-                iconColor: options.annotation.iconColor,
-                query: query
-              },
-              rangeRaw: options.rangeRaw
-            };
+            var _this = this;
 
             return this.doRequest({
-              url: this.url + '/annotations',
-              method: 'POST',
-              data: annotationQuery
-            }).then(function (result) {
-              return result.data;
+              url: this.url + '/list/metric/' + this.checkUuid,
+              method: 'GET'
+            }).then(function (response) {
+              if (response.status != 200) throw new Error('Invalid status code ' + response.status);
+              if (response.data && response.data.length) {
+                return { status: "success", message: "Data source has " + response.data.length + " metrics", title: "Success" };
+              } else {
+                throw new Error('No metrics found for check ' + _this.checkUuid);
+              }
+            }, function (error) {
+              console.error("Error testing datasource", error);
+              throw new Error("Error testing data source, check the console");
             });
           }
         }, {
           key: 'metricFindQuery',
-          value: function metricFindQuery(query) {
+          value: function metricFindQuery(query, kind) {
+            query = query || '';
+            kind = kind || 'numeric';
+
             var interpolated = {
               target: this.templateSrv.replace(query, null, 'regex')
             };
 
             return this.doRequest({
-              url: this.url + '/search',
-              data: interpolated,
-              method: 'POST'
-            }).then(this.mapToTextValue);
+              url: this.url + '/list/metric/' + this.checkUuid,
+              method: 'GET'
+            }).then(function (response) {
+              var metrics = [];
+              var _iteratorNormalCompletion = true;
+              var _didIteratorError = false;
+              var _iteratorError = undefined;
+
+              try {
+                for (var _iterator = response.data[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                  var metric = _step.value;
+
+                  if (metric.type != kind) continue;
+                  metrics.push(metric.metric);
+                }
+              } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+              } finally {
+                try {
+                  if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                  }
+                } finally {
+                  if (_didIteratorError) {
+                    throw _iteratorError;
+                  }
+                }
+              }
+
+              return metrics;
+            });
           }
         }, {
-          key: 'mapToTextValue',
-          value: function mapToTextValue(result) {
-            return _.map(result.data, function (d, i) {
-              if (d && d.text && d.value) {
-                return { text: d.text, value: d.value };
-              } else if (_.isObject(d)) {
-                return { text: d, value: i };
+          key: 'query',
+          value: function query(options) {
+
+            console.log('QUERY', options);
+
+            var interval = options.intervalMs;
+            var start = options.range.from.valueOf();
+            var end = options.range.to.valueOf();
+
+            interval = Math.round(interval / 1000);
+            if (interval < this.minRollup) interval = this.minRollup;
+            start = Math.floor(start / 1000 / interval) * interval;
+            end = Math.ceil(end / 1000 / interval) * interval;
+
+            console.log('start =', start, 'end =', end, 'interval =', interval);
+
+            var promises = [];
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+              for (var _iterator2 = options.targets[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var target = _step2.value;
+
+                var metric = this.templateSrv.replace(target.target, options.scopedVars, 'regex');
+                promises.push(this.fetchData(metric, target.type, start, end, interval));
+                console.log('TARGET', target);
               }
-              return { text: d, value: d };
+            } catch (err) {
+              _didIteratorError2 = true;
+              _iteratorError2 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                  _iterator2.return();
+                }
+              } finally {
+                if (_didIteratorError2) {
+                  throw _iteratorError2;
+                }
+              }
+            }
+
+            return this.q.all(promises).then(function (data) {
+              return { data: data };
+            });
+          }
+        }, {
+          key: 'annotationQuery',
+          value: function annotationQuery(options) {
+            throw new Error('Unsupported Operation');
+          }
+        }, {
+          key: 'fetchData',
+          value: function fetchData(metric, type, start, end, interval) {
+
+            var url = type == 'text' ? this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric : this.url + '/rollup/' + this.checkUuid + '/' + metric + '?start_ts=' + start + '&end_ts=' + end + '&rollup_span=' + interval + 's' + '&type=' + encodeURIComponent(type);
+            var multiplier = type == 'text' ? 1 : 1000;
+
+            var data = [];
+            var result = { target: metric, datapoints: data };
+            return this.doRequest({
+              url: url,
+              method: 'GET'
+            }).then(function (response) {
+              var _iteratorNormalCompletion3 = true;
+              var _didIteratorError3 = false;
+              var _iteratorError3 = undefined;
+
+              try {
+                for (var _iterator3 = response.data[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                  var entry = _step3.value;
+
+                  data.push([entry[1], entry[0] * multiplier]);
+                }
+              } catch (err) {
+                _didIteratorError3 = true;
+                _iteratorError3 = err;
+              } finally {
+                try {
+                  if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                    _iterator3.return();
+                  }
+                } finally {
+                  if (_didIteratorError3) {
+                    throw _iteratorError3;
+                  }
+                }
+              }
+
+              console.log('FETCHING', url, result);
+              return result;
             });
           }
         }, {
@@ -141,7 +227,7 @@ System.register(['lodash'], function (_export, _context) {
         }, {
           key: 'buildQueryParameters',
           value: function buildQueryParameters(options) {
-            var _this = this;
+            var _this2 = this;
 
             //remove placeholder targets
             options.targets = _.filter(options.targets, function (target) {
@@ -150,7 +236,7 @@ System.register(['lodash'], function (_export, _context) {
 
             var targets = _.map(options.targets, function (target) {
               return {
-                target: _this.templateSrv.replace(target.target, options.scopedVars, 'regex'),
+                target: _this2.templateSrv.replace(target.target, options.scopedVars, 'regex'),
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || 'timeserie'
@@ -163,10 +249,10 @@ System.register(['lodash'], function (_export, _context) {
           }
         }]);
 
-        return GenericDatasource;
+        return IronDbCheckDatasource;
       }());
 
-      _export('GenericDatasource', GenericDatasource);
+      _export('IronDbCheckDatasource', IronDbCheckDatasource);
     }
   };
 });

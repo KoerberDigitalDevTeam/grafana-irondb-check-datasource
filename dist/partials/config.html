@@ -1,2 +1,28 @@
-<datasource-http-settings current="ctrl.current">
+<datasource-http-settings current="ctrl.current" suggest-url="http://localhost:8112">
 </datasource-http-settings>
+
+<h3 class="page-heading">IronDB Details</h3>
+
+<div class="gf-form-group">
+
+  <div class="gf-form">
+    <span class="gf-form-label width-12">
+      Check UUID
+      <info-popover mode="right-normal" position="top center">
+        The UUID of the check of the metrics.
+      </info-popover>
+    </span>
+    <input type="text" class="gf-form-input" ng-model='ctrl.current.jsonData.checkUuid' placeholder="00000000-0000-0000-0000-000000000000"></input>
+  </div>
+
+  <div class="gf-form">
+    <span class="gf-form-label width-12">
+      Minimum rollup
+      <info-popover mode="right-normal" position="top center">
+        The minimum rollup time to pass to IronDB, defaults to 30 seconds.
+      </info-popover>
+    </span>
+    <input type="text" class="gf-form-input" ng-model='ctrl.current.jsonData.minRollup' placeholder="30"></input>
+  </div>
+
+</div>

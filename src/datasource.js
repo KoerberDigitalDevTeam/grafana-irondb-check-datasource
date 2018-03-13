@@ -1,6 +1,6 @@
 import _ from "lodash";
 
-export class GenericDatasource {
+export class IronDbCheckDatasource {
 
   constructor(instanceSettings, $q, backendSrv, templateSrv) {
     this.type = instanceSettings.type;
@@ -10,81 +10,114 @@ export class GenericDatasource {
     this.backendSrv = backendSrv;
     this.templateSrv = templateSrv;
     this.withCredentials = instanceSettings.withCredentials;
+    this.checkUuid = instanceSettings.jsonData
+                  && instanceSettings.jsonData.checkUuid
+                  || '00000000-0000-0000-0000-000000000000';
+    this.minRollup = parseInt(instanceSettings.jsonData.minRollup) || 30;
     this.headers = {'Content-Type': 'application/json'};
     if (typeof instanceSettings.basicAuth === 'string' && instanceSettings.basicAuth.length > 0) {
       this.headers['Authorization'] = instanceSettings.basicAuth;
     }
   }
 
-  query(options) {
-    var query = this.buildQueryParameters(options);
-    query.targets = query.targets.filter(t => !t.hide);
-
-    if (query.targets.length <= 0) {
-      return this.q.when({data: []});
-    }
-
-    return this.doRequest({
-      url: this.url + '/query',
-      data: query,
-      method: 'POST'
-    });
-  }
-
+  /* Test our datasource, we must have at least one metric for it to be successful */
   testDatasource() {
     return this.doRequest({
-      url: this.url + '/',
-      method: 'GET',
-    }).then(response => {
-      if (response.status === 200) {
-        return { status: "success", message: "Data source is working", title: "Success" };
+      url: this.url + '/list/metric/' + this.checkUuid,
+      method: 'GET'
+    }).then((response) => {
+      if (response.status != 200) throw new Error('Invalid status code ' + response.status);
+      if (response.data && response.data.length) {
+        return { status: "success", message: "Data source has " + response.data.length + " metrics", title: "Success" };
+      } else {
+        throw new Error('No metrics found for check ' + this.checkUuid);
       }
+    }, (error) => {
+      console.error("Error testing datasource", error);
+      throw new Error("Error testing data source, check the console");
     });
   }
 
-  annotationQuery(options) {
-    var query = this.templateSrv.replace(options.annotation.query, {}, 'glob');
-    var annotationQuery = {
-      range: options.range,
-      annotation: {
-        name: options.annotation.name,
-        datasource: options.annotation.datasource,
-        enable: options.annotation.enable,
-        iconColor: options.annotation.iconColor,
-        query: query
-      },
-      rangeRaw: options.rangeRaw
-    };
+  /* Find the metrics associated with our UUID of a specific kind */
+  metricFindQuery(query, kind) {
+    query = query || '';
+    kind = kind || 'numeric';
 
-    return this.doRequest({
-      url: this.url + '/annotations',
-      method: 'POST',
-      data: annotationQuery
-    }).then(result => {
-      return result.data;
-    });
-  }
-
-  metricFindQuery(query) {
     var interpolated = {
         target: this.templateSrv.replace(query, null, 'regex')
     };
 
     return this.doRequest({
-      url: this.url + '/search',
-      data: interpolated,
-      method: 'POST',
-    }).then(this.mapToTextValue);
+      url: this.url + '/list/metric/' + this.checkUuid,
+      method: 'GET',
+    }).then((response) => {
+      let metrics = [];
+      for (let metric of response.data) {
+        if (metric.type != kind) continue;
+        metrics.push(metric.metric);
+      }
+      return metrics;
+    });
   }
 
-  mapToTextValue(result) {
-    return _.map(result.data, (d, i) => {
-      if (d && d.text && d.value) {
-        return { text: d.text, value: d.value };
-      } else if (_.isObject(d)) {
-        return { text: d, value: i};
+  /* Query IronDB for the metric data */
+  query(options) {
+
+    console.log('QUERY', options);
+
+    let interval = options.intervalMs;
+    let start = options.range.from.valueOf();
+    let end = options.range.to.valueOf();
+
+    interval = Math.round(interval / 1000);
+    if (interval < this.minRollup) interval = this.minRollup;
+    start = Math.floor(start / 1000 / interval) * interval;
+    end = Math.ceil(end / 1000 / interval) * interval;
+
+    console.log('start =', start, 'end =', end, 'interval =', interval);
+
+    let promises = [];
+    for (let target of options.targets) {
+      let metric = this.templateSrv.replace(target.target, options.scopedVars, 'regex');
+      promises.push(this.fetchData(metric, target.type, start, end, interval));
+      console.log('TARGET', target);
+    }
+
+    return this.q.all(promises).then((data) => {
+      return { data: data }
+    });
+  }
+
+  annotationQuery(options) {
+    throw new Error('Unsupported Operation');
+  }
+
+
+
+  /* ======================================================================== */
+
+  fetchData(metric, type, start, end, interval) {
+
+    let url = type == 'text' ?
+              this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric:
+              this.url + '/rollup/' + this.checkUuid + '/' + metric
+                       + '?start_ts=' + start
+                       + '&end_ts=' + end
+                       + '&rollup_span=' + interval + 's'
+                       + '&type=' + encodeURIComponent(type);
+    let multiplier = type == 'text' ? 1 : 1000;
+
+    let data = [];
+    let result = { target: metric, datapoints: data }
+    return this.doRequest({
+      url: url,
+      method: 'GET',
+    }).then((response) => {
+      for (let entry of response.data) {
+        data.push([ entry[1], entry[0] * multiplier]);
       }
-      return { text: d, value: d };
+      console.log('FETCHING', url, result);
+      return result;
     });
   }
 

@@ -1,7 +1,7 @@
 {
-  "name": "grafana-simple-json",
+  "name": "grafana-irondb-check-datasource",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -10,12 +10,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/grafana/simple-json-datasource.git"
+    "url": "git+https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource.git"
   },
-  "author": "",
+  "author": {
+    "name": "Pier Fumagalli",
+    "email": "pier.fumagalli@koerber.digital"
+  },
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/grafana/simple-json-datasource/issues"
+    "url": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource/issues"
   },
   "engines": {
     "node": "6.10.0"
@@ -24,7 +27,7 @@
   "devDependencies": {
     "babel": "^6.23.0",
     "chai": "~3.5.0",
-    "grunt": "^1.0.1",
+    "grunt": "^0.4.5",
     "grunt-babel": "~6.0.0",
     "grunt-cli": "^1.2.0",
     "grunt-contrib-clean": "^1.1.0",
@@ -46,5 +49,5 @@
     "lodash": "^4.17.4",
     "mocha": "^3.2.0"
   },
-  "homepage": "https://github.com/grafana/simple-json-datasource#readme"
+  "homepage": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource#readme"
 }

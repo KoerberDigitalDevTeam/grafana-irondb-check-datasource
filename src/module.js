@@ -1,19 +1,11 @@
-import {GenericDatasource} from './datasource';
-import {GenericDatasourceQueryCtrl} from './query_ctrl';
+import { IronDbCheckDatasource } from './datasource';
+import { IronDbCheckQueryCtrl }  from './query_ctrl';
 
-class GenericConfigCtrl {}
-GenericConfigCtrl.templateUrl = 'partials/config.html';
-
-class GenericQueryOptionsCtrl {}
-GenericQueryOptionsCtrl.templateUrl = 'partials/query.options.html';
-
-class GenericAnnotationsQueryCtrl {}
-GenericAnnotationsQueryCtrl.templateUrl = 'partials/annotations.editor.html'
+class IronDbCheckConfigCtrl {}
+IronDbCheckConfigCtrl.templateUrl = 'partials/config.html';
 
 export {
-  GenericDatasource as Datasource,
-  GenericDatasourceQueryCtrl as QueryCtrl,
-  GenericConfigCtrl as ConfigCtrl,
-  GenericQueryOptionsCtrl as QueryOptionsCtrl,
-  GenericAnnotationsQueryCtrl as AnnotationsQueryCtrl
+  IronDbCheckDatasource as Datasource,
+  IronDbCheckQueryCtrl  as QueryCtrl,
+  IronDbCheckConfigCtrl as ConfigCtrl
 };
