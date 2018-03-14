@@ -3,7 +3,7 @@
 System.register(['./datasource', './query_ctrl'], function (_export, _context) {
   "use strict";
 
-  var IronDbCheckDatasource, IronDbCheckQueryCtrl, IronDbCheckConfigCtrl;
+  var IronDbCheckDatasource, IronDbCheckQueryCtrl, IronDbCheckConfigCtrl, IronDbCheckAnnotationsQueryCtrl;
 
   function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
@@ -24,11 +24,19 @@ System.register(['./datasource', './query_ctrl'], function (_export, _context) {
 
       IronDbCheckConfigCtrl.templateUrl = 'partials/config.html';
 
+      _export('AnnotationsQueryCtrl', IronDbCheckAnnotationsQueryCtrl = function IronDbCheckAnnotationsQueryCtrl() {
+        _classCallCheck(this, IronDbCheckAnnotationsQueryCtrl);
+      });
+
+      IronDbCheckAnnotationsQueryCtrl.templateUrl = 'partials/annotations.editor.html';
+
       _export('Datasource', IronDbCheckDatasource);
 
       _export('QueryCtrl', IronDbCheckQueryCtrl);
 
       _export('ConfigCtrl', IronDbCheckConfigCtrl);
+
+      _export('AnnotationsQueryCtrl', IronDbCheckAnnotationsQueryCtrl);
     }
   };
 });

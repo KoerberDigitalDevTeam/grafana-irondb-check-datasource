@@ -172,7 +172,52 @@ System.register(['lodash'], function (_export, _context) {
         }, {
           key: 'annotationQuery',
           value: function annotationQuery(options) {
-            throw new Error('Unsupported Operation');
+            console.log("ANN", options);
+
+            var start = Math.floor(options.range.from.valueOf() / 1000);
+            var end = Math.ceil(options.range.to.valueOf() / 1000);
+
+            var name = options.annotation.name || 'Annotation';
+            var query = options.annotation.query || null;
+
+            if (!query) return this.q.resolve([]);
+
+            var url = this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + query;
+
+            console.log("-->", url, start, end, name, query);
+
+            return this.doRequest({
+              url: url,
+              method: 'GET'
+            }).then(function (response) {
+              var data = [];
+              var _iteratorNormalCompletion3 = true;
+              var _didIteratorError3 = false;
+              var _iteratorError3 = undefined;
+
+              try {
+                for (var _iterator3 = response.data[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                  var entry = _step3.value;
+
+                  data.push({ time: entry[0], text: entry[1] });
+                }
+              } catch (err) {
+                _didIteratorError3 = true;
+                _iteratorError3 = err;
+              } finally {
+                try {
+                  if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                    _iterator3.return();
+                  }
+                } finally {
+                  if (_didIteratorError3) {
+                    throw _iteratorError3;
+                  }
+                }
+              }
+
+              return data;
+            });
           }
         }, {
           key: 'fetchData',
@@ -187,27 +232,27 @@ System.register(['lodash'], function (_export, _context) {
               url: url,
               method: 'GET'
             }).then(function (response) {
-              var _iteratorNormalCompletion3 = true;
-              var _didIteratorError3 = false;
-              var _iteratorError3 = undefined;
+              var _iteratorNormalCompletion4 = true;
+              var _didIteratorError4 = false;
+              var _iteratorError4 = undefined;
 
               try {
-                for (var _iterator3 = response.data[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
-                  var entry = _step3.value;
+                for (var _iterator4 = response.data[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+                  var entry = _step4.value;
 
                   data.push([entry[1], entry[0] * multiplier]);
                 }
               } catch (err) {
-                _didIteratorError3 = true;
-                _iteratorError3 = err;
+                _didIteratorError4 = true;
+                _iteratorError4 = err;
               } finally {
                 try {
-                  if (!_iteratorNormalCompletion3 && _iterator3.return) {
-                    _iterator3.return();
+                  if (!_iteratorNormalCompletion4 && _iterator4.return) {
+                    _iterator4.return();
                   }
                 } finally {
-                  if (_didIteratorError3) {
-                    throw _iteratorError3;
+                  if (_didIteratorError4) {
+                    throw _iteratorError4;
                   }
                 }
               }

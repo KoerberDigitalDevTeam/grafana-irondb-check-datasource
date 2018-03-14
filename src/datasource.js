@@ -89,10 +89,31 @@ export class IronDbCheckDatasource {
   }
 
   annotationQuery(options) {
-    throw new Error('Unsupported Operation');
+    console.log("ANN", options);
+
+    let start = Math.floor(options.range.from.valueOf() / 1000);
+    let end = Math.ceil(options.range.to.valueOf() / 1000);
+
+    let name = options.annotation.name || 'Annotation';
+    let query = (options.annotation.query || null);
+
+    if (! query) return this.q.resolve([]);
+
+    let url = this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + query;
+
+    console.log("-->", url, start, end, name, query);
+
+    return this.doRequest({
+      url: url,
+      method: 'GET',
+    }).then((response) => {
+      let data = [];
+      for (let entry of response.data) {
+        data.push({ time: entry[0], text: entry[1]});
+      }
+      return data;
+    });
   }
-
-
 
   /* ======================================================================== */
 
