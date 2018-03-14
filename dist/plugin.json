@@ -21,11 +21,11 @@
       "large": "img/circonus_logo.svg"
     },
     "links": [
-      {"name": "GitHub", "url": "https://github.com/pfumagalli/irondb-check-datasource"},
-      {"name": "MIT License", "url": "https://github.com/grafana/irondb-check-datasource/blob/master/LICENSE"}
+      {"name": "GitHub", "url": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource"},
+      {"name": "MIT License", "url": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource/blob/master/LICENSE"}
     ],
     "version": "0.0.1",
-    "updated": "2018-03-12"
+    "updated": "2018-03-13"
   },
 
   "dependencies": {
