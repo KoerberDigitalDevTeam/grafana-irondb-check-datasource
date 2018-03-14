@@ -191,6 +191,10 @@ System.register(['lodash'], function (_export, _context) {
               method: 'GET'
             }).then(function (response) {
               var data = [];
+
+              var regionId = 1;
+              var previousTrue = null;
+
               var _iteratorNormalCompletion3 = true;
               var _didIteratorError3 = false;
               var _iteratorError3 = undefined;
@@ -199,7 +203,17 @@ System.register(['lodash'], function (_export, _context) {
                 for (var _iterator3 = response.data[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
                   var entry = _step3.value;
 
-                  data.push({ time: entry[0], text: entry[1] });
+                  var object = { title: name, time: entry[0], text: entry[1] };
+
+                  if (object.text == 'true') {
+                    previousTrue = object;
+                  } else if (object.text == 'false' && previousTrue != null) {
+                    previousTrue.regionId = object.regionId = regionId++;
+                    delete previousTrue.text;
+                    delete object.text;
+                  } else previousTrue = null;
+
+                  data.push(object);
                 }
               } catch (err) {
                 _didIteratorError3 = true;
@@ -216,6 +230,7 @@ System.register(['lodash'], function (_export, _context) {
                 }
               }
 
+              console.log("ANNOTATIONS", data);
               return data;
             });
           }

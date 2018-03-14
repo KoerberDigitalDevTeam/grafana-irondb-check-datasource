@@ -108,9 +108,24 @@ export class IronDbCheckDatasource {
       method: 'GET',
     }).then((response) => {
       let data = [];
+
+      let regionId = 1;
+      let previousTrue = null;
+
       for (let entry of response.data) {
-        data.push({ time: entry[0], text: entry[1]});
+        let object = { title: name, time: entry[0], text: entry[1] };
+
+        if (object.text == 'true') {
+          previousTrue = object;
+        } else if ((object.text == 'false') && (previousTrue != null)) {
+          previousTrue.regionId = object.regionId = (regionId ++);
+          delete previousTrue.text;
+          delete object.text;
+        } else previousTrue = null;
+
+        data.push(object);
       }
+      console.log("ANNOTATIONS", data);
       return data;
     });
   }
