@@ -1,199 +1,45 @@
-## Simple JSON Datasource - a generic backend datasource
+# IronDB Checks Datasource Plugin
 
-More documentation about datasource plugins can be found in the [Docs](https://github.com/grafana/grafana/blob/master/docs/sources/plugins/developing/datasources.md).
+This is a simple plugin for Grafana using the `/rollup/` (for NNTB) and `/read/`
+(for TEXT) endpoints in IronDB to fetch and massage telemetry data.
 
-This also serves as a living example implementation of a datasource.
+### Installation
 
-Your backend needs to implement 4 urls:
+For now check out the code (only `/dist/` is required) into your Grafana plugins
+directory.
 
- * `/` should return 200 ok. Used for "Test connection" on the datasource config page.
- * `/search` used by the find metric options on the query tab in panels.
- * `/query` should return metrics based on input.
- * `/annotations` should return annotations.
+### Configuration
 
-## Installation
+When configuring the datasource, simply add the check UUID into your datasource
+plugin configuration.
 
-To install this plugin using the `grafana-cli` tool:
-```
-sudo grafana-cli plugins install grafana-simple-json-datasource
-sudo service grafana-server restart
-```
-See [here](https://grafana.com/plugins/grafana-simple-json-datasource/installation) for more
-information.
+In other words, one check, one datasource (keep it simple, and stupid).
 
-### Example backend implementations
-- https://github.com/bergquist/fake-simple-json-datasource
-- https://github.com/smcquay/jsonds
+The minimum rollup configuration parameter will set the minimum rollup interval,
+in order to avoid `null` data coming in unexpectedly when zooming too far.
 
-### Query API
+### Metric Names
 
-Example `timeserie` request
-``` javascript
-{
-  "panelId": 1,
-  "range": {
-    "from": "2016-10-31T06:33:44.866Z",
-    "to": "2016-10-31T12:33:44.866Z",
-    "raw": {
-      "from": "now-6h",
-      "to": "now"
-    }
-  },
-  "rangeRaw": {
-    "from": "now-6h",
-    "to": "now"
-  },
-  "interval": "30s",
-  "intervalMs": 30000,
-  "targets": [
-     { "target": "upper_50", "refId": "A", "type": "timeserie" },
-     { "target": "upper_75", "refId": "B", "type": "timeserie" }
-  ],
-  "format": "json",
-  "maxDataPoints": 550
-}
-```
+The plugin will do its best to fetch a list of metric names for a given check
+UUID by hitting the `/list/metric/` endpoint and provide autocompletion.
 
-Example `timeserie` response
-``` javascript
-[
-  {
-    "target":"upper_75", // The field being queried for
-    "datapoints":[
-      [622,1450754160000],  // Metric value as a float , unixtimestamp in milliseconds
-      [365,1450754220000]
-    ]
-  },
-  {
-    "target":"upper_90",
-    "datapoints":[
-      [861,1450754160000],
-      [767,1450754220000]
-    ]
-  }
-]
-```
+### Numeric Data
 
-If the metric selected is `"type": "table"`, an example `table` response:
-```json
-[
-  {
-    "columns":[
-      {"text":"Time","type":"time"},
-      {"text":"Country","type":"string"},
-      {"text":"Number","type":"number"}
-    ],
-    "rows":[
-      [1234567,"SE",123],
-      [1234567,"DE",231],
-      [1234567,"US",321]
-    ],
-    "type":"table"
-  }
-]
-```
+To get numeric data, the plugin will use the `/rollup/` endpoint in IronDB, and
+when configuring the metric source it will be possible to get not only the
+average but also counters, derive, counter, ...
 
-### Annotation API
+### Text Data
 
-The annotation request from the Simple JSON Datasource is a POST request to
-the /annotations endpoint in your datasource. The JSON request body looks like this:
-``` javascript
-{
-  "range": {
-    "from": "2016-04-15T13:44:39.070Z",
-    "to": "2016-04-15T14:44:39.070Z"
-  },
-  "rangeRaw": {
-    "from": "now-1h",
-    "to": "now"
-  },
-  "annotation": {
-    "name": "deploy",
-    "datasource": "Simple JSON Datasource",
-    "iconColor": "rgba(255, 96, 96, 1)",
-    "enable": true,
-    "query": "#deploy"
-  }
-}
-```
+Text data will be read from the `/read/` endpoint normally and returned
+as a metric.
 
-Grafana expects a response containing an array of annotation objects in the
-following format:
+### Annotations
 
-``` javascript
-[
-  {
-    annotation: annotation, // The original annotation sent from Grafana.
-    time: time, // Time since UNIX Epoch in milliseconds. (required)
-    title: title, // The title for the annotation tooltip. (required)
-    tags: tags, // Tags for the annotation. (optional)
-    text: text // Text for the annotation. (optional)
-  }
-]
-```
+Text data can also be used as annotations in the graph. Just configure it in
+the dashboard.
 
-Note: If the datasource is configured to connect directly to the backend, you
-also need to implement an OPTIONS endpoint at /annotations that responds
-with the correct CORS headers:
+If the text data for annotations matches exactly `true` and is followed
+immediately by a `false` vale, the annotation will be converted into a range
+between the two data points.
 
-```
-Access-Control-Allow-Headers:accept, content-type
-Access-Control-Allow-Methods:POST
-Access-Control-Allow-Origin:*
-```
-
-### Search API
-
-Example request
-``` javascript
-{ target: 'upper_50' }
-```
-
-The search api can either return an array or map.
-
-Example array response
-``` javascript
-["upper_25","upper_50","upper_75","upper_90","upper_95"]
-```
-
-Example map response
-``` javascript
-[ { "text" :"upper_25", "value": 1}, { "text" :"upper_75", "value": 2} ]
-```
-
-### Dev setup
-
-This plugin requires node 6.10.0
-
-`npm install -g yarn`
-`yarn install`
-`npm run build`
-
-### Changelog
-
-1.3.5
-- Fix for dropdowns in query editor to allow writing template variables (broke due to change in Grafana).
-
-1.3.4
-- Adds support for With Credentials (sends grafana cookies with request) when using Direct mode
-- Fix for the typeahead component for metrics dropdown (/search endpoint).
-
-1.3.3
- - Adds support for basic authentication
-
-1.2.4
- - Add support returning sets in the search endpoint
-
-1.2.3
- - Allow nested templates in find metric query. #23
-
-1.2.2
- - Dont execute hidden queries
- - Template support for metrics queries
- - Template support for annotation queries
-
-### If using Grafana 2.6
-NOTE!
-for grafana 2.6 please use [this version](https://github.com/grafana/simple-json-datasource/commit/b78720f6e00c115203d8f4c0e81ccd3c16001f94)
-
-Copy the data source you want to /public/app/plugins/datasource/. Then restart grafana-server. The new data source should now be available in the data source type dropdown in the Add Data Source View.
