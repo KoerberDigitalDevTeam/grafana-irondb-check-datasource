@@ -51,6 +51,11 @@ System.register(['lodash'], function (_export, _context) {
           if (typeof instanceSettings.basicAuth === 'string' && instanceSettings.basicAuth.length > 0) {
             this.headers['Authorization'] = instanceSettings.basicAuth;
           }
+
+          this.cache = {
+            metrics: null,
+            timestamp: 0
+          };
         }
 
         /* Test our datasource, we must have at least one metric for it to be successful */
@@ -62,7 +67,7 @@ System.register(['lodash'], function (_export, _context) {
             var _this = this;
 
             return this.doRequest({
-              url: this.url + '/list/metric/' + this.checkUuid,
+              url: this.url + '/raw/list_metrics',
               method: 'GET'
             }).then(function (response) {
               if (response.status != 200) throw new Error('Invalid status code ' + response.status);
@@ -79,28 +84,40 @@ System.register(['lodash'], function (_export, _context) {
         }, {
           key: 'metricFindQuery',
           value: function metricFindQuery(query, kind) {
-            query = query || '';
-            kind = kind || 'numeric';
+            var _this2 = this;
 
-            var interpolated = {
-              target: this.templateSrv.replace(query, null, 'regex')
-            };
+            console.debug('Attempting to find metrics');
+
+            var now = new Date().getTime();
+            if (this.cache.metrics != null && now - this.cache.timestamp < 60000) {
+              console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
+              return Promise.resolve(this.cache.metrics[this.checkUuid] || []);
+            }
 
             return this.doRequest({
-              url: this.url + '/list/metric/' + this.checkUuid,
+              url: this.url + '/raw/list_metrics',
               method: 'GET'
             }).then(function (response) {
-              var metrics = [];
+
+              var metrics = {};
               var _iteratorNormalCompletion = true;
               var _didIteratorError = false;
               var _iteratorError = undefined;
 
               try {
-                for (var _iterator = response.data[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                for (var _iterator = response.data.metrics[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
                   var metric = _step.value;
 
-                  if (metric.type != kind) continue;
-                  metrics.push(metric.metric);
+                  var match = metric.match(/^([0-9a-fA-F]{4}(?:[0-9a-fA-F]{4}-){4}[0-9a-fA-F]{12})-(.*)$/);
+                  if (!match) continue;
+
+                  var uuid = match[1];
+                  var name = match[2];
+
+                  var group = metrics[uuid];
+                  if (!group) group = metrics[uuid] = [];
+
+                  group.push(name);
                 }
               } catch (err) {
                 _didIteratorError = true;
@@ -117,7 +134,11 @@ System.register(['lodash'], function (_export, _context) {
                 }
               }
 
-              return metrics;
+              console.log('Caching metrics from', response.data, 'as', metrics);
+              _this2.cache.metrics = metrics;
+              _this2.cache.timestamp = new Date().getTime();
+
+              return metrics[_this2.checkUuid] || [];
             });
           }
         }, {
@@ -247,6 +268,7 @@ System.register(['lodash'], function (_export, _context) {
               url: url,
               method: 'GET'
             }).then(function (response) {
+              console.log('RESPONSE', response.data);
               var _iteratorNormalCompletion4 = true;
               var _didIteratorError4 = false;
               var _iteratorError4 = undefined;
@@ -272,6 +294,10 @@ System.register(['lodash'], function (_export, _context) {
                 }
               }
 
+              if (type == 'text') {
+                console.log('INJECTING', [data[data.length - 1], end]);
+                data.push([data[data.length - 1][0], end * 1000]);
+              }
               console.log('FETCHING', url, result);
               return result;
             });
@@ -287,7 +313,7 @@ System.register(['lodash'], function (_export, _context) {
         }, {
           key: 'buildQueryParameters',
           value: function buildQueryParameters(options) {
-            var _this2 = this;
+            var _this3 = this;
 
             //remove placeholder targets
             options.targets = _.filter(options.targets, function (target) {
@@ -296,7 +322,7 @@ System.register(['lodash'], function (_export, _context) {
 
             var targets = _.map(options.targets, function (target) {
               return {
-                target: _this2.templateSrv.replace(target.target, options.scopedVars, 'regex'),
+                target: _this3.templateSrv.replace(target.target, options.scopedVars, 'regex'),
                 refId: target.refId,
                 hide: target.hide,
                 type: target.type || 'timeserie'

@@ -18,12 +18,17 @@ export class IronDbCheckDatasource {
     if (typeof instanceSettings.basicAuth === 'string' && instanceSettings.basicAuth.length > 0) {
       this.headers['Authorization'] = instanceSettings.basicAuth;
     }
+
+    this.cache = {
+      metrics: null,
+      timestamp: 0
+    };
   }
 
   /* Test our datasource, we must have at least one metric for it to be successful */
   testDatasource() {
     return this.doRequest({
-      url: this.url + '/list/metric/' + this.checkUuid,
+      url: this.url + '/raw/list_metrics',
       method: 'GET'
     }).then((response) => {
       if (response.status != 200) throw new Error('Invalid status code ' + response.status);
@@ -40,23 +45,39 @@ export class IronDbCheckDatasource {
 
   /* Find the metrics associated with our UUID of a specific kind */
   metricFindQuery(query, kind) {
-    query = query || '';
-    kind = kind || 'numeric';
+    console.debug('Attempting to find metrics');
 
-    var interpolated = {
-        target: this.templateSrv.replace(query, null, 'regex')
-    };
+    /* Return data cached up to 10 minutes */
+    let now = new Date().getTime();
+    if ((this.cache.metrics != null) && ((now - this.cache.timestamp) < 600000)) {
+      console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
+      return Promise.resolve(this.cache.metrics[this.checkUuid] || []);
+    }
 
     return this.doRequest({
-      url: this.url + '/list/metric/' + this.checkUuid,
+      url: this.url + '/raw/list_metrics',
       method: 'GET',
     }).then((response) => {
-      let metrics = [];
-      for (let metric of response.data) {
-        if (metric.type != kind) continue;
-        metrics.push(metric.metric);
+
+      let metrics = {};
+      for (let metric of response.data.metrics) {
+        let match = metric.match(/^([0-9a-fA-F]{4}(?:[0-9a-fA-F]{4}-){4}[0-9a-fA-F]{12})-(.*)$/);
+        if (! match) continue;
+
+        let uuid = match[1];
+        let name = match[2];
+
+        let group = metrics[uuid];
+        if (! group) group = metrics[uuid] = [];
+
+        group.push(name);
       }
-      return metrics;
+
+      console.log('Caching metrics from', response.data, 'as', metrics);
+      this.cache.metrics = metrics;
+      this.cache.timestamp = new Date().getTime();
+
+      return metrics[this.checkUuid] || [];
     });
   }
 
@@ -149,8 +170,13 @@ export class IronDbCheckDatasource {
       url: url,
       method: 'GET',
     }).then((response) => {
+      console.log('RESPONSE', response.data);
       for (let entry of response.data) {
         data.push([ entry[1], entry[0] * multiplier]);
+      }
+      if (type == 'text') {
+        console.log('INJECTING', [ data[data.length - 1], end]);
+        data.push([ data[data.length - 1][0], end * 1000]);
       }
       console.log('FETCHING', url, result);
       return result;
