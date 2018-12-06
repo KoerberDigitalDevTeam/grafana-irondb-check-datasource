@@ -40,8 +40,9 @@ function (_QueryCtrl) {
     _this = _possibleConstructorReturn(this, _getPrototypeOf(IronDbCheckQueryCtrl).call(this, $scope, $injector));
     _this.scope = $scope;
     _this.target.kind = _this.target.kind || 'numeric';
-    _this.target.target = _this.target.target || 'select metric';
+    _this.target.target = _this.target.target || '';
     _this.target.type = _this.target.type || 'average';
+    _this.target.alias = _this.target.alias || '';
     return _this;
   }
 
@@ -85,7 +86,7 @@ function (_QueryCtrl) {
     key: "onChangeKind",
     value: function onChangeKind() {
       if (this.target.kind == 'text') this.target.type = 'text';else this.target.type = 'average';
-      this.target.target = 'select metric';
+      this.target.target = '';
       this.refresh();
     }
   }]);
