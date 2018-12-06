@@ -11,10 +11,10 @@
   "annotations": true,
 
   "info": {
-    "description": "IronDB Rollup DataSource",
+    "description": "IronDB Check DataSource",
     "author": {
-      "name": "Grafana Labs",
-      "url": "https://grafana.com"
+      "name": "Körber Digital Dev Team",
+      "url": "https://github.com/KoerberDigitalDevTeam"
     },
     "logos": {
       "small": "img/circonus_logo.svg",

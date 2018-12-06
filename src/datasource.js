@@ -10,6 +10,9 @@ export class IronDbCheckDatasource {
     this.backendSrv = backendSrv;
     this.templateSrv = templateSrv;
     this.withCredentials = instanceSettings.withCredentials;
+    this.accountId = instanceSettings.jsonData
+                  && instanceSettings.jsonData.accountId
+                  || '0';
     this.checkUuid = instanceSettings.jsonData
                   && instanceSettings.jsonData.checkUuid
                   || '00000000-0000-0000-0000-000000000000';
@@ -25,60 +28,62 @@ export class IronDbCheckDatasource {
     };
   }
 
-  /* Test our datasource, we must have at least one metric for it to be successful */
-  testDatasource() {
+  /* List the metrics for this check UUID */
+  findMetrics(cached = true) {
+    let now = new Date().getTime();
+    if (cached && (this.cache.metrics != null) && ((now - this.cache.timestamp) < 600000)) {
+      console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
+      return Promise.resolve(this.cache.metrics);
+    }
+
     return this.doRequest({
-      url: this.url + '/raw/list_metrics',
+      url: this.url + `/find/${this.accountId}/tags`,
+      params: { query: `and(__check_uuid:${this.checkUuid})` },
       method: 'GET'
     }).then((response) => {
       if (response.status != 200) throw new Error('Invalid status code ' + response.status);
+
+      let metrics = { text: [], numeric: [] }
+
       if (response.data && response.data.length) {
-        return { status: "success", message: "Data source has " + response.data.length + " metrics", title: "Success" };
+        for (let metric of response.data) {
+          for (let type of metric.type.split(',')) {
+            if (! metrics[type]) metrics[type] = []
+            metrics[type].push(metric.metric_name)
+          }
+        }
+
+        console.log(`Caching ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`)
+        this.cache.metrics = metrics
+        this.cache.timestamp = Date.now()
       } else {
-        throw new Error('No metrics found for check ' + this.checkUuid);
+        console.log('Wiping cached data (no metrics)')
+        this.cache.metrics = null
+        this.cache.timestamp = 0
       }
-    }, (error) => {
+
+      return metrics
+    }).catch((error) => {
       console.error("Error testing datasource", error);
       throw new Error("Error testing data source, check the console");
     });
   }
 
+  /* Test our datasource, we must have at least one metric for it to be successful */
+  testDatasource() {
+    return this.findMetrics(false).then((metrics) => {
+      return { status: "success", title: "Success",
+               message: `Found ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`
+             };
+    })
+  }
+
   /* Find the metrics associated with our UUID of a specific kind */
   metricFindQuery(query, kind) {
-    console.debug('Attempting to find metrics');
-
-    /* Return data cached up to 10 minutes */
-    let now = new Date().getTime();
-    if ((this.cache.metrics != null) && ((now - this.cache.timestamp) < 600000)) {
-      console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
-      return Promise.resolve(this.cache.metrics[this.checkUuid] || []);
-    }
-
-    return this.doRequest({
-      url: this.url + '/raw/list_metrics',
-      method: 'GET',
-    }).then((response) => {
-
-      let metrics = {};
-      for (let metric of response.data.metrics) {
-        let match = metric.match(/^([0-9a-fA-F]{4}(?:[0-9a-fA-F]{4}-){4}[0-9a-fA-F]{12})-(.*)$/);
-        if (! match) continue;
-
-        let uuid = match[1];
-        let name = match[2];
-
-        let group = metrics[uuid];
-        if (! group) group = metrics[uuid] = [];
-
-        group.push(name);
-      }
-
-      console.log('Caching metrics from', response.data, 'as', metrics);
-      this.cache.metrics = metrics;
-      this.cache.timestamp = new Date().getTime();
-
-      return metrics[this.checkUuid] || [];
-    });
+    console.debug(`Attempting to find ${kind} metrics`, query);
+    return this.findMetrics().then((metrics) => {
+      return metrics[kind] || []
+    })
   }
 
   /* Query IronDB for the metric data */
@@ -99,9 +104,11 @@ export class IronDbCheckDatasource {
 
     let promises = [];
     for (let target of options.targets) {
-      let metric = this.templateSrv.replace(target.target, options.scopedVars, 'regex');
-      promises.push(this.fetchData(metric, target.type, start, end, interval));
-      console.log('TARGET', target);
+      if (target.target) {
+        let metric = this.templateSrv.replace(target.target, options.scopedVars, 'regex');
+        let alias = this.templateSrv.replace(target.alias, options.scopedVars, 'regex');
+        promises.push(this.fetchData(metric, alias, target.type, start, end, interval));
+      }
     }
 
     return this.q.all(promises).then((data) => {
@@ -153,7 +160,7 @@ export class IronDbCheckDatasource {
 
   /* ======================================================================== */
 
-  fetchData(metric, type, start, end, interval) {
+  fetchData(metric, alias, type, start, end, interval) {
 
     let url = type == 'text' ?
               this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric:
@@ -165,7 +172,7 @@ export class IronDbCheckDatasource {
     let multiplier = type == 'text' ? 1 : 1000;
 
     let data = [];
-    let result = { target: metric, datapoints: data }
+    let result = { target: alias || metric, datapoints: data }
     return this.doRequest({
       url: url,
       method: 'GET',
@@ -193,7 +200,7 @@ export class IronDbCheckDatasource {
   buildQueryParameters(options) {
     //remove placeholder targets
     options.targets = _.filter(options.targets, target => {
-      return target.target !== 'select metric';
+      return target.target !== '';
     });
 
     var targets = _.map(options.targets, target => {

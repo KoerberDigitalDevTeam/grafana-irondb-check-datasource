@@ -8,8 +8,9 @@ export class IronDbCheckQueryCtrl extends QueryCtrl {
 
     this.scope = $scope;
     this.target.kind   = this.target.kind   || 'numeric';
-    this.target.target = this.target.target || 'select metric';
+    this.target.target = this.target.target || '';
     this.target.type   = this.target.type   || 'average';
+    this.target.alias  = this.target.alias  || '';
   }
 
   getOptions(query) {
@@ -25,7 +26,7 @@ export class IronDbCheckQueryCtrl extends QueryCtrl {
   onChangeKind() {
     if (this.target.kind == 'text') this.target.type = 'text';
     else this.target.type = 'average';
-    this.target.target = 'select metric';
+    this.target.target = '';
     this.refresh();
   }
 }

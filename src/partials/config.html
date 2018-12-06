@@ -7,22 +7,32 @@
 
   <div class="gf-form">
     <span class="gf-form-label width-12">
+      Account ID
+      <info-popover mode="right-normal" position="top center">
+        The Account ID of the checks to find (default: 0).
+      </info-popover>
+    </span>
+    <input type="text" class="gf-form-input width-8" ng-model='ctrl.current.jsonData.accountId' placeholder="0"></input>
+  </div>
+
+  <div class="gf-form">
+    <span class="gf-form-label width-12">
       Check UUID
       <info-popover mode="right-normal" position="top center">
         The UUID of the check of the metrics.
       </info-popover>
     </span>
-    <input type="text" class="gf-form-input" ng-model='ctrl.current.jsonData.checkUuid' placeholder="00000000-0000-0000-0000-000000000000"></input>
+    <input type="text" class="gf-form-input width-24" ng-model='ctrl.current.jsonData.checkUuid' placeholder="00000000-0000-0000-0000-000000000000"></input>
   </div>
 
   <div class="gf-form">
     <span class="gf-form-label width-12">
       Minimum rollup
       <info-popover mode="right-normal" position="top center">
-        The minimum rollup time to pass to IronDB, defaults to 30 seconds.
+        The minimum rollup time to pass to IronDB (default: 30 sec.)
       </info-popover>
     </span>
-    <input type="text" class="gf-form-input" ng-model='ctrl.current.jsonData.minRollup' placeholder="30"></input>
+    <input type="text" class="gf-form-input width-8" ng-model='ctrl.current.jsonData.minRollup' placeholder="30"></input>
   </div>
 
 </div>
