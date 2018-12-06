@@ -1,7 +1,7 @@
 {
   "name": "grafana-irondb-check-datasource",
   "version": "0.0.1",
-  "description": "This is a simple plugin for Grafana for IronDB.",
+  "description": "This is a simple IronDB plugin for Grafana",
   "main": "index.js",
   "scripts": {
     "build": "./node_modules/grunt-cli/bin/grunt",
