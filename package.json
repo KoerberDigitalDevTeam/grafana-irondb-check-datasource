@@ -1,8 +1,7 @@
 {
   "name": "grafana-irondb-check-datasource",
-  "private": true,
   "version": "0.0.1",
-  "description": "",
+  "description": "This is a simple plugin for Grafana for IronDB.",
   "main": "index.js",
   "scripts": {
     "build": "./node_modules/grunt-cli/bin/grunt",
@@ -16,7 +15,7 @@
     "name": "Pier Fumagalli",
     "email": "pier.fumagalli@koerber.digital"
   },
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource/issues"
   },
