@@ -1,6 +1,6 @@
 {
   "name": "grafana-irondb-check-datasource",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "This is a simple IronDB plugin for Grafana",
   "main": "index.js",
   "scripts": {
