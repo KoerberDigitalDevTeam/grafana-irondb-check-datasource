@@ -1,53 +1,52 @@
-import _ from "lodash";
+import _ from 'lodash'
 
 export class IronDbCheckDatasource {
-
   constructor(instanceSettings, $q, backendSrv, templateSrv) {
-    this.type = instanceSettings.type;
-    this.url = instanceSettings.url;
-    this.name = instanceSettings.name;
-    this.q = $q;
-    this.backendSrv = backendSrv;
-    this.templateSrv = templateSrv;
-    this.withCredentials = instanceSettings.withCredentials;
+    this.type = instanceSettings.type
+    this.url = instanceSettings.url
+    this.name = instanceSettings.name
+    this.q = $q
+    this.backendSrv = backendSrv
+    this.templateSrv = templateSrv
+    this.withCredentials = instanceSettings.withCredentials
     this.accountId = instanceSettings.jsonData
                   && instanceSettings.jsonData.accountId
-                  || '0';
+                  || '0'
     this.checkUuid = instanceSettings.jsonData
                   && instanceSettings.jsonData.checkUuid
-                  || '00000000-0000-0000-0000-000000000000';
-    this.minRollup = parseInt(instanceSettings.jsonData.minRollup) || 30;
-    this.headers = {'Content-Type': 'application/json'};
+                  || '00000000-0000-0000-0000-000000000000'
+    this.minRollup = parseInt(instanceSettings.jsonData.minRollup) || 30
+    this.headers = { 'Content-Type': 'application/json' }
     if (typeof instanceSettings.basicAuth === 'string' && instanceSettings.basicAuth.length > 0) {
-      this.headers['Authorization'] = instanceSettings.basicAuth;
+      this.headers['Authorization'] = instanceSettings.basicAuth
     }
 
     this.cache = {
       metrics: null,
-      timestamp: 0
-    };
+      timestamp: 0,
+    }
   }
 
   /* List the metrics for this check UUID */
   findMetrics(cached = true) {
-    let now = new Date().getTime();
+    const now = new Date().getTime()
     if (cached && (this.cache.metrics != null) && ((now - this.cache.timestamp) < 600000)) {
       // console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
-      return Promise.resolve(this.cache.metrics);
+      return Promise.resolve(this.cache.metrics)
     }
 
     return this.doRequest({
       url: this.url + `/find/${this.accountId}/tags`,
       params: { query: `and(__check_uuid:${this.checkUuid})` },
-      method: 'GET'
+      method: 'GET',
     }).then((response) => {
-      if (response.status != 200) throw new Error('Invalid status code ' + response.status);
+      if (response.status != 200) throw new Error('Invalid status code ' + response.status)
 
-      let metrics = { text: [], numeric: [] }
+      const metrics = { text: [], numeric: [] }
 
       if (response.data && response.data.length) {
-        for (let metric of response.data) {
-          for (let type of metric.type.split(',')) {
+        for (const metric of response.data) {
+          for (const type of metric.type.split(',')) {
             if (! metrics[type]) metrics[type] = []
             metrics[type].push(metric.metric_name)
           }
@@ -64,23 +63,23 @@ export class IronDbCheckDatasource {
 
       return metrics
     }).catch((error) => {
-      console.error("Error testing datasource", error);
-      throw new Error("Error testing data source, check the console");
-    });
+      console.error('Error testing datasource', error)
+      throw new Error('Error testing data source, check the console')
+    })
   }
 
   /* Test our datasource, we must have at least one metric for it to be successful */
   testDatasource() {
     return this.findMetrics(false).then((metrics) => {
-      return { status: "success", title: "Success",
-               message: `Found ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`
-             };
+      return { status: 'success', title: 'Success',
+        message: `Found ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`,
+      }
     })
   }
 
   /* Find the metrics associated with our UUID of a specific kind */
   metricFindQuery(query, kind) {
-    console.debug(`Attempting to find ${kind} metrics`, query);
+    console.debug(`Attempting to find ${kind} metrics`, query)
     return this.findMetrics().then((metrics) => {
       return metrics[kind] || []
     })
@@ -88,141 +87,140 @@ export class IronDbCheckDatasource {
 
   /* Query IronDB for the metric data */
   query(options) {
-
     // console.log('Running query', options);
 
-    let interval = options.intervalMs;
-    let start = options.range.from.valueOf();
-    let end = options.range.to.valueOf();
+    let interval = options.intervalMs
+    let start = options.range.from.valueOf()
+    let end = options.range.to.valueOf()
 
-    interval = Math.round(interval / 1000);
-    if (interval < this.minRollup) interval = this.minRollup;
-    start = Math.floor(start / 1000 / interval) * interval;
-    end = Math.ceil(end / 1000 / interval) * interval;
+    interval = Math.round(interval / 1000)
+    if (interval < this.minRollup) interval = this.minRollup
+    start = Math.floor(start / 1000 / interval) * interval
+    end = Math.ceil(end / 1000 / interval) * interval
 
-    let promises = [];
-    for (let target of options.targets) {
+    const promises = []
+    for (const target of options.targets) {
       if (target.target) {
         promises.push(this.fetchData({
           metric: this.templateSrv.replace(target.target, options.scopedVars, 'regex'),
           alias: this.templateSrv.replace(target.alias, options.scopedVars, 'regex'),
-          target, start, end, interval
-        }));
+          target, start, end, interval,
+        }))
       }
     }
 
     return this.q.all(promises).then((data) => {
       return { data: data }
-    });
+    })
   }
 
   annotationQuery(options) {
     // console.log("Annotations query", options);
 
-    let start = Math.floor(options.range.from.valueOf() / 1000);
-    let end = Math.ceil(options.range.to.valueOf() / 1000);
+    const start = Math.floor(options.range.from.valueOf() / 1000)
+    const end = Math.ceil(options.range.to.valueOf() / 1000)
 
-    let name = options.annotation.name || 'Annotation';
-    let query = (options.annotation.query || null);
+    const name = options.annotation.name || 'Annotation'
+    const query = (options.annotation.query || null)
 
-    if (! query) return this.q.resolve([]);
+    if (! query) return this.q.resolve([])
 
-    let url = this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + query;
+    const url = this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + query
 
     return this.doRequest({
       url: url,
       method: 'GET',
     }).then((response) => {
-      let data = [];
+      const data = []
 
-      let regionId = 1;
-      let previousTrue = null;
+      let regionId = 1
+      let previousTrue = null
 
-      for (let entry of response.data) {
-        let object = { title: name, time: entry[0], text: entry[1] };
+      for (const entry of response.data) {
+        const object = { title: name, time: entry[0], text: entry[1] }
 
         if (object.text == 'true') {
-          previousTrue = object;
+          previousTrue = object
         } else if ((object.text == 'false') && (previousTrue != null)) {
-          previousTrue.regionId = object.regionId = (regionId ++);
-          delete previousTrue.text;
-          delete object.text;
-        } else previousTrue = null;
+          previousTrue.regionId = object.regionId = (regionId ++)
+          delete previousTrue.text
+          delete object.text
+        } else previousTrue = null
 
-        data.push(object);
+        data.push(object)
       }
       // console.log("Annotations", data);
-      return data;
-    });
+      return data
+    })
   }
 
   /* ======================================================================== */
 
   fetchData(options) {
-    let { metric, alias, target, start, end, interval } = options
+    const { metric, alias, target, start, end, interval } = options
     let { kind, type, extend } = target
     // Default behavior, before "extend" existed
     if (!('extend' in target)) extend = true
 
     // console.log('Fetch data', options)
 
-    let url = kind == 'text' ?
+    const url = kind == 'text' ?
               this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric:
               this.url + '/rollup/' + this.checkUuid + '/' + metric
                        + '?start_ts=' + start
                        + '&end_ts=' + end
                        + '&rollup_span=' + interval + 's'
-                       + '&type=' + encodeURIComponent(type);
-    let multiplier = kind == 'text' ? 1 : 1000;
+                       + '&type=' + encodeURIComponent(type)
+    const multiplier = kind == 'text' ? 1 : 1000
 
-    let data = [];
-    let result = { target: alias || metric, datapoints: data }
+    const data = []
+    const result = { target: alias || metric, datapoints: data }
     return this.doRequest({
       url: url,
       method: 'GET',
     }).then((response) => {
       // console.log('Fetch Data Response', response.data);
 
-      for (let entry of response.data) {
+      for (const entry of response.data) {
         const number = parseFloat(entry[1])
         const value = isNaN(number) ? entry[1] : number
-        data.push([ value, entry[0] * multiplier]);
+        data.push([ value, entry[0] * multiplier ])
       }
 
       if (extend && (kind == 'text') && (data.length > 0)) {
         // console.log('Extending', [ data[data.length - 1][0], end]);
-        data.push([ data[data.length - 1][0], end * 1000]);
+        data.push([ data[data.length - 1][0], end * 1000 ])
       }
 
       // console.log('Fetched', url, result);
-      return result;
-    });
+      return result
+    })
   }
 
   doRequest(options) {
-    options.withCredentials = this.withCredentials;
-    options.headers = this.headers;
+    options.withCredentials = this.withCredentials
+    options.headers = this.headers
 
-    return this.backendSrv.datasourceRequest(options);
+    return this.backendSrv.datasourceRequest(options)
   }
 
   buildQueryParameters(options) {
-    //remove placeholder targets
-    options.targets = _.filter(options.targets, target => {
-      return target.target !== '';
-    });
+    // remove placeholder targets
+    options.targets = _.filter(options.targets, (target) => {
+      return target.target !== ''
+    })
 
-    var targets = _.map(options.targets, target => {
+    const targets = _.map(options.targets, (target) => {
       return {
         target: this.templateSrv.replace(target.target, options.scopedVars, 'regex'),
         refId: target.refId,
         hide: target.hide,
-        type: target.type || 'timeserie'
-      };
-    });
+        type: target.type || 'timeserie',
+      }
+    })
 
-    options.targets = targets;
+    options.targets = targets
 
-    return options;
+    return options
   }
 }

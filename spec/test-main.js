@@ -1,20 +1,20 @@
-import prunk from 'prunk';
-import { JSDOM } from 'jsdom';
-import chai from 'chai';
+import prunk from 'prunk'
+import { JSDOM } from 'jsdom'
+import chai from 'chai'
 
 // Mock Grafana modules that are not available outside of the core project
 // Required for loading module.js
-prunk.mock('./css/query-editor.css!', 'no css, dude.');
+prunk.mock('./css/query-editor.css!', 'no css, dude.')
 prunk.mock('app/plugins/sdk', {
-    QueryCtrl: null
-});
+  QueryCtrl: null,
+})
 
 // Setup jsdom
 // Required for loading angularjs
-global.document = new JSDOM('<html><head><script></script></head><body></body></html>');
-global.window = global.document.parentWindow;
+global.document = new JSDOM('<html><head><script></script></head><body></body></html>')
+global.window = global.document.parentWindow
 
 // Setup Chai
-chai.should();
-global.assert = chai.assert;
-global.expect = chai.expect;
+chai.should()
+global.assert = chai.assert
+global.expect = chai.expect
