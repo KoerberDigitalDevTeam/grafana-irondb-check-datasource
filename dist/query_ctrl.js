@@ -43,6 +43,7 @@ function (_QueryCtrl) {
     _this.target.target = _this.target.target || '';
     _this.target.type = _this.target.type || 'average';
     _this.target.alias = _this.target.alias || '';
+    _this.target.extend = _this.target.extend || true;
     return _this;
   }
 
@@ -69,8 +70,8 @@ function (_QueryCtrl) {
           _iteratorError = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion && _iterator.return != null) {
-              _iterator.return();
+            if (!_iteratorNormalCompletion && _iterator["return"] != null) {
+              _iterator["return"]();
             }
           } finally {
             if (_didIteratorError) {
@@ -85,7 +86,6 @@ function (_QueryCtrl) {
   }, {
     key: "onChangeKind",
     value: function onChangeKind() {
-      if (this.target.kind == 'text') this.target.type = 'text';else this.target.type = 'average';
       this.target.target = '';
       this.refresh();
     }

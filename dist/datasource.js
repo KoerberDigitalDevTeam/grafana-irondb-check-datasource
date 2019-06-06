@@ -7,7 +7,7 @@ exports.IronDbCheckDatasource = void 0;
 
 var _lodash = _interopRequireDefault(require("lodash"));
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -56,7 +56,7 @@ function () {
       var now = new Date().getTime();
 
       if (cached && this.cache.metrics != null && now - this.cache.timestamp < 600000) {
-        console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
+        // console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
         return Promise.resolve(this.cache.metrics);
       }
 
@@ -96,8 +96,8 @@ function () {
                 _iteratorError2 = err;
               } finally {
                 try {
-                  if (!_iteratorNormalCompletion2 && _iterator2.return != null) {
-                    _iterator2.return();
+                  if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
+                    _iterator2["return"]();
                   }
                 } finally {
                   if (_didIteratorError2) {
@@ -105,14 +105,15 @@ function () {
                   }
                 }
               }
-            }
+            } // console.log(`Caching ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`)
+
           } catch (err) {
             _didIteratorError = true;
             _iteratorError = err;
           } finally {
             try {
-              if (!_iteratorNormalCompletion && _iterator.return != null) {
-                _iterator.return();
+              if (!_iteratorNormalCompletion && _iterator["return"] != null) {
+                _iterator["return"]();
               }
             } finally {
               if (_didIteratorError) {
@@ -121,17 +122,16 @@ function () {
             }
           }
 
-          console.log("Caching ".concat(metrics.numeric.length, " numeric and ").concat(metrics.text.length, " text metrics"));
           _this.cache.metrics = metrics;
           _this.cache.timestamp = Date.now();
         } else {
-          console.log('Wiping cached data (no metrics)');
+          // console.log('Wiping cached data (no metrics)')
           _this.cache.metrics = null;
           _this.cache.timestamp = 0;
         }
 
         return metrics;
-      }).catch(function (error) {
+      })["catch"](function (error) {
         console.error("Error testing datasource", error);
         throw new Error("Error testing data source, check the console");
       });
@@ -164,7 +164,7 @@ function () {
   }, {
     key: "query",
     value: function query(options) {
-      console.log('QUERY', options);
+      // console.log('Running query', options);
       var interval = options.intervalMs;
       var start = options.range.from.valueOf();
       var end = options.range.to.valueOf();
@@ -172,7 +172,6 @@ function () {
       if (interval < this.minRollup) interval = this.minRollup;
       start = Math.floor(start / 1000 / interval) * interval;
       end = Math.ceil(end / 1000 / interval) * interval;
-      console.log('start =', start, 'end =', end, 'interval =', interval);
       var promises = [];
       var _iteratorNormalCompletion3 = true;
       var _didIteratorError3 = false;
@@ -183,9 +182,14 @@ function () {
           var target = _step3.value;
 
           if (target.target) {
-            var metric = this.templateSrv.replace(target.target, options.scopedVars, 'regex');
-            var alias = this.templateSrv.replace(target.alias, options.scopedVars, 'regex');
-            promises.push(this.fetchData(metric, alias, target.type, start, end, interval));
+            promises.push(this.fetchData({
+              metric: this.templateSrv.replace(target.target, options.scopedVars, 'regex'),
+              alias: this.templateSrv.replace(target.alias, options.scopedVars, 'regex'),
+              target: target,
+              start: start,
+              end: end,
+              interval: interval
+            }));
           }
         }
       } catch (err) {
@@ -193,8 +197,8 @@ function () {
         _iteratorError3 = err;
       } finally {
         try {
-          if (!_iteratorNormalCompletion3 && _iterator3.return != null) {
-            _iterator3.return();
+          if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
+            _iterator3["return"]();
           }
         } finally {
           if (_didIteratorError3) {
@@ -212,14 +216,13 @@ function () {
   }, {
     key: "annotationQuery",
     value: function annotationQuery(options) {
-      console.log("ANN", options);
+      // console.log("Annotations query", options);
       var start = Math.floor(options.range.from.valueOf() / 1000);
       var end = Math.ceil(options.range.to.valueOf() / 1000);
       var name = options.annotation.name || 'Annotation';
       var query = options.annotation.query || null;
       if (!query) return this.q.resolve([]);
       var url = this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + query;
-      console.log("-->", url, start, end, name, query);
       return this.doRequest({
         url: url,
         method: 'GET'
@@ -249,14 +252,15 @@ function () {
             } else previousTrue = null;
 
             data.push(object);
-          }
+          } // console.log("Annotations", data);
+
         } catch (err) {
           _didIteratorError4 = true;
           _iteratorError4 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion4 && _iterator4.return != null) {
-              _iterator4.return();
+            if (!_iteratorNormalCompletion4 && _iterator4["return"] != null) {
+              _iterator4["return"]();
             }
           } finally {
             if (_didIteratorError4) {
@@ -265,7 +269,6 @@ function () {
           }
         }
 
-        console.log("ANNOTATIONS", data);
         return data;
       });
     }
@@ -273,9 +276,21 @@ function () {
 
   }, {
     key: "fetchData",
-    value: function fetchData(metric, alias, type, start, end, interval) {
-      var url = type == 'text' ? this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric : this.url + '/rollup/' + this.checkUuid + '/' + metric + '?start_ts=' + start + '&end_ts=' + end + '&rollup_span=' + interval + 's' + '&type=' + encodeURIComponent(type);
-      var multiplier = type == 'text' ? 1 : 1000;
+    value: function fetchData(options) {
+      var metric = options.metric,
+          alias = options.alias,
+          target = options.target,
+          start = options.start,
+          end = options.end,
+          interval = options.interval;
+      var kind = target.kind,
+          type = target.type,
+          extend = target.extend; // Default behavior, before "extend" existed
+
+      if (!('extend' in target)) extend = true; // console.log('Fetch data', options)
+
+      var url = kind == 'text' ? this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric : this.url + '/rollup/' + this.checkUuid + '/' + metric + '?start_ts=' + start + '&end_ts=' + end + '&rollup_span=' + interval + 's' + '&type=' + encodeURIComponent(type);
+      var multiplier = kind == 'text' ? 1 : 1000;
       var data = [];
       var result = {
         target: alias || metric,
@@ -285,7 +300,7 @@ function () {
         url: url,
         method: 'GET'
       }).then(function (response) {
-        console.log('RESPONSE', response.data);
+        // console.log('Fetch Data Response', response.data);
         var _iteratorNormalCompletion5 = true;
         var _didIteratorError5 = false;
         var _iteratorError5 = undefined;
@@ -293,15 +308,17 @@ function () {
         try {
           for (var _iterator5 = response.data[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
             var entry = _step5.value;
-            data.push([entry[1], entry[0] * multiplier]);
+            var number = parseFloat(entry[1]);
+            var value = isNaN(number) ? entry[1] : number;
+            data.push([value, entry[0] * multiplier]);
           }
         } catch (err) {
           _didIteratorError5 = true;
           _iteratorError5 = err;
         } finally {
           try {
-            if (!_iteratorNormalCompletion5 && _iterator5.return != null) {
-              _iterator5.return();
+            if (!_iteratorNormalCompletion5 && _iterator5["return"] != null) {
+              _iterator5["return"]();
             }
           } finally {
             if (_didIteratorError5) {
@@ -310,12 +327,12 @@ function () {
           }
         }
 
-        if (type == 'text') {
-          console.log('INJECTING', [data[data.length - 1], end]);
+        if (extend && kind == 'text' && data.length > 0) {
+          // console.log('Extending', [ data[data.length - 1][0], end]);
           data.push([data[data.length - 1][0], end * 1000]);
-        }
+        } // console.log('Fetched', url, result);
 
-        console.log('FETCHING', url, result);
+
         return result;
       });
     }
@@ -332,11 +349,11 @@ function () {
       var _this2 = this;
 
       //remove placeholder targets
-      options.targets = _lodash.default.filter(options.targets, function (target) {
+      options.targets = _lodash["default"].filter(options.targets, function (target) {
         return target.target !== '';
       });
 
-      var targets = _lodash.default.map(options.targets, function (target) {
+      var targets = _lodash["default"].map(options.targets, function (target) {
         return {
           target: _this2.templateSrv.replace(target.target, options.scopedVars, 'regex'),
           refId: target.refId,
