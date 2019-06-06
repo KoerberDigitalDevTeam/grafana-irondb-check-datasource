@@ -24,8 +24,8 @@
       {"name": "GitHub", "url": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource"},
       {"name": "MIT License", "url": "https://github.com/KoerberDigitalDevTeam/grafana-irondb-check-datasource/blob/master/LICENSE"}
     ],
-    "version": "0.0.2",
-    "updated": "2018-12-06"
+    "version": "1.0.0",
+    "updated": "2019-06-06"
   },
 
   "dependencies": {
