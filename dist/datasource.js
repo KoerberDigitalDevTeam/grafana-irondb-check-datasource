@@ -132,8 +132,8 @@ function () {
 
         return metrics;
       })["catch"](function (error) {
-        console.error("Error testing datasource", error);
-        throw new Error("Error testing data source, check the console");
+        console.error('Error testing datasource', error);
+        throw new Error('Error testing data source, check the console');
       });
     }
     /* Test our datasource, we must have at least one metric for it to be successful */
@@ -143,8 +143,8 @@ function () {
     value: function testDatasource() {
       return this.findMetrics(false).then(function (metrics) {
         return {
-          status: "success",
-          title: "Success",
+          status: 'success',
+          title: 'Success',
           message: "Found ".concat(metrics.numeric.length, " numeric and ").concat(metrics.text.length, " text metrics")
         };
       });
@@ -348,7 +348,7 @@ function () {
     value: function buildQueryParameters(options) {
       var _this2 = this;
 
-      //remove placeholder targets
+      // remove placeholder targets
       options.targets = _lodash["default"].filter(options.targets, function (target) {
         return target.target !== '';
       });
