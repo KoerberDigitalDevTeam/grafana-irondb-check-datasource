@@ -1,79 +1,78 @@
 module.exports = function(grunt) {
+  require('load-grunt-tasks')(grunt)
 
-  require('load-grunt-tasks')(grunt);
-
-  grunt.loadNpmTasks('grunt-contrib-clean');
+  grunt.loadNpmTasks('grunt-contrib-clean')
 
   grunt.initConfig({
 
-    clean: ["dist"],
+    clean: [ 'dist' ],
 
     copy: {
       src_to_dist: {
         cwd: 'src',
         expand: true,
-        src: ['**/*', '!**/*.js', '!**/*.scss'],
-        dest: 'dist'
+        src: [ '**/*', '!**/*.js', '!**/*.scss' ],
+        dest: 'dist',
       },
       pluginDef: {
         expand: true,
-        src: ['README.md'],
-        dest: 'dist'
-      }
+        src: [ 'README.md' ],
+        dest: 'dist',
+      },
     },
 
     watch: {
       rebuild_all: {
-        files: ['src/**/*'],
-        tasks: ['default'],
-        options: {spawn: false}
-      }
+        files: [ 'src/**/*' ],
+        tasks: [ 'default' ],
+        options: { spawn: false },
+      },
     },
 
     babel: {
       options: {
         sourceMap: true,
-        presets:  ['@babel/env'],
-        plugins: ['@babel/plugin-proposal-object-rest-spread']
+        presets: [ '@babel/env' ],
+        plugins: [ '@babel/plugin-proposal-object-rest-spread' ],
       },
       dist: {
-        files: [{
+        files: [ {
           cwd: 'src',
           expand: true,
-          src: ['**/*.js'],
+          src: [ '**/*.js' ],
           dest: 'dist',
-          ext:'.js'
-        }]
+          ext: '.js',
+        } ],
       },
       distTestNoSystemJs: {
-        files: [{
+        files: [ {
           cwd: 'src',
           expand: true,
-          src: ['**/*.js'],
+          src: [ '**/*.js' ],
           dest: 'dist/test',
-          ext:'.js'
-        }]
+          ext: '.js',
+        } ],
       },
       distTestsSpecsNoSystemJs: {
-        files: [{
+        files: [ {
           expand: true,
           cwd: 'spec',
-          src: ['**/*.js'],
+          src: [ '**/*.js' ],
           dest: 'dist/test/spec',
-          ext:'.js'
-        }]
-      }
+          ext: '.js',
+        } ],
+      },
     },
 
     mochaTest: {
       test: {
         options: {
-          reporter: 'spec'
+          reporter: 'spec',
         },
-        src: ['dist/test/spec/test-main.js', 'dist/test/spec/*_spec.js']
-      }
-    }
-  });
+        src: [ 'dist/test/spec/test-main.js', 'dist/test/spec/*_spec.js' ],
+      },
+    },
+  })
 
-  grunt.registerTask('default', ['clean', 'copy:src_to_dist', 'copy:pluginDef', 'babel', 'mochaTest']);
-};
+  grunt.registerTask('default', [ 'clean', 'copy:src_to_dist', 'copy:pluginDef', 'babel', 'mochaTest' ])
+}
