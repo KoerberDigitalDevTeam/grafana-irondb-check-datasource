@@ -21,12 +21,25 @@
     </div>
 
     <div class="gf-form max-width-12"
-         ng-if="ctrl.target.type != 'text'">
+         ng-if="ctrl.target.kind == 'numeric'">
       <select class="gf-form-input"
               ng-model="ctrl.target.type"
               ng-change="ctrl.refresh()"
               ng-options="f as f for f in ['average', 'derive', 'counter', 'average_stddev', 'derive_stddev', 'counter_stddev', 'derive2', 'counter2', 'derive2_stddev', 'counter2_stddev', 'count']">
       </select>
+    </div>
+
+    <div class="gf-form"
+         ng-if="ctrl.target.kind == 'text'">
+      <label class="gf-form-switch-container">
+        <div class="gf-form-label">
+          Extend
+        </div>
+        <div class="gf-form-checkbox">
+          <input id="check-extend" type="checkbox" ng-model="ctrl.target.extend" ng-change="ctrl.refresh()">
+          <span class="gf-form-switch__slider"></span>
+        </div>
+      </label>
     </div>
 
     <div class="gf-form max-width-12">

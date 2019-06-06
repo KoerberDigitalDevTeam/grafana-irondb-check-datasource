@@ -32,7 +32,7 @@ export class IronDbCheckDatasource {
   findMetrics(cached = true) {
     let now = new Date().getTime();
     if (cached && (this.cache.metrics != null) && ((now - this.cache.timestamp) < 600000)) {
-      console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
+      // console.log('Returning metrics cached at ' + new Date(this.cache.timestamp).toISOString());
       return Promise.resolve(this.cache.metrics);
     }
 
@@ -53,11 +53,11 @@ export class IronDbCheckDatasource {
           }
         }
 
-        console.log(`Caching ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`)
+        // console.log(`Caching ${metrics.numeric.length} numeric and ${metrics.text.length} text metrics`)
         this.cache.metrics = metrics
         this.cache.timestamp = Date.now()
       } else {
-        console.log('Wiping cached data (no metrics)')
+        // console.log('Wiping cached data (no metrics)')
         this.cache.metrics = null
         this.cache.timestamp = 0
       }
@@ -89,7 +89,7 @@ export class IronDbCheckDatasource {
   /* Query IronDB for the metric data */
   query(options) {
 
-    console.log('QUERY', options);
+    // console.log('Running query', options);
 
     let interval = options.intervalMs;
     let start = options.range.from.valueOf();
@@ -100,14 +100,14 @@ export class IronDbCheckDatasource {
     start = Math.floor(start / 1000 / interval) * interval;
     end = Math.ceil(end / 1000 / interval) * interval;
 
-    console.log('start =', start, 'end =', end, 'interval =', interval);
-
     let promises = [];
     for (let target of options.targets) {
       if (target.target) {
-        let metric = this.templateSrv.replace(target.target, options.scopedVars, 'regex');
-        let alias = this.templateSrv.replace(target.alias, options.scopedVars, 'regex');
-        promises.push(this.fetchData(metric, alias, target.type, start, end, interval));
+        promises.push(this.fetchData({
+          metric: this.templateSrv.replace(target.target, options.scopedVars, 'regex'),
+          alias: this.templateSrv.replace(target.alias, options.scopedVars, 'regex'),
+          target, start, end, interval
+        }));
       }
     }
 
@@ -117,7 +117,7 @@ export class IronDbCheckDatasource {
   }
 
   annotationQuery(options) {
-    console.log("ANN", options);
+    // console.log("Annotations query", options);
 
     let start = Math.floor(options.range.from.valueOf() / 1000);
     let end = Math.ceil(options.range.to.valueOf() / 1000);
@@ -128,8 +128,6 @@ export class IronDbCheckDatasource {
     if (! query) return this.q.resolve([]);
 
     let url = this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + query;
-
-    console.log("-->", url, start, end, name, query);
 
     return this.doRequest({
       url: url,
@@ -153,23 +151,29 @@ export class IronDbCheckDatasource {
 
         data.push(object);
       }
-      console.log("ANNOTATIONS", data);
+      // console.log("Annotations", data);
       return data;
     });
   }
 
   /* ======================================================================== */
 
-  fetchData(metric, alias, type, start, end, interval) {
+  fetchData(options) {
+    let { metric, alias, target, start, end, interval } = options
+    let { kind, type, extend } = target
+    // Default behavior, before "extend" existed
+    if (!('extend' in target)) extend = true
 
-    let url = type == 'text' ?
+    // console.log('Fetch data', options)
+
+    let url = kind == 'text' ?
               this.url + '/read/' + start + '/' + end + '/' + this.checkUuid + '/' + metric:
               this.url + '/rollup/' + this.checkUuid + '/' + metric
                        + '?start_ts=' + start
                        + '&end_ts=' + end
                        + '&rollup_span=' + interval + 's'
                        + '&type=' + encodeURIComponent(type);
-    let multiplier = type == 'text' ? 1 : 1000;
+    let multiplier = kind == 'text' ? 1 : 1000;
 
     let data = [];
     let result = { target: alias || metric, datapoints: data }
@@ -177,15 +181,20 @@ export class IronDbCheckDatasource {
       url: url,
       method: 'GET',
     }).then((response) => {
-      console.log('RESPONSE', response.data);
+      // console.log('Fetch Data Response', response.data);
+
       for (let entry of response.data) {
-        data.push([ entry[1], entry[0] * multiplier]);
+        const number = parseFloat(entry[1])
+        const value = isNaN(number) ? entry[1] : number
+        data.push([ value, entry[0] * multiplier]);
       }
-      if (type == 'text') {
-        console.log('INJECTING', [ data[data.length - 1], end]);
+
+      if (extend && (kind == 'text') && (data.length > 0)) {
+        // console.log('Extending', [ data[data.length - 1][0], end]);
         data.push([ data[data.length - 1][0], end * 1000]);
       }
-      console.log('FETCHING', url, result);
+
+      // console.log('Fetched', url, result);
       return result;
     });
   }

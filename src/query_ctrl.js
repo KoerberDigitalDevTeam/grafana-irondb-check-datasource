@@ -11,6 +11,7 @@ export class IronDbCheckQueryCtrl extends QueryCtrl {
     this.target.target = this.target.target || '';
     this.target.type   = this.target.type   || 'average';
     this.target.alias  = this.target.alias  || '';
+    this.target.extend = this.target.extend || true;
   }
 
   getOptions(query) {
@@ -24,8 +25,6 @@ export class IronDbCheckQueryCtrl extends QueryCtrl {
   }
 
   onChangeKind() {
-    if (this.target.kind == 'text') this.target.type = 'text';
-    else this.target.type = 'average';
     this.target.target = '';
     this.refresh();
   }
